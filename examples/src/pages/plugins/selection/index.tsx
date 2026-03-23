@@ -1,13 +1,14 @@
-import React from 'react'
+import React, { useEffect, useRef } from 'react'
 import { Graph, Keyboard, Selection } from '@antv/x6'
 import '../../index.less'
 
-export class SelectionExample extends React.Component {
-  private container!: HTMLDivElement
+export const SelectionExample: React.FC = () => {
+  const containerRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (!containerRef.current) return
 
-  componentDidMount() {
     const graph = new Graph({
-      container: this.container,
+      container: containerRef.current,
       width: 1200,
       height: 800,
       grid: true,
@@ -139,17 +140,15 @@ export class SelectionExample extends React.Component {
       const selectedCells = selection.getSelectedCells()
       graph.removeCells(selectedCells)
     })
-  }
 
-  refContainer = (container: HTMLDivElement) => {
-    this.container = container
-  }
+    return () => {
+      graph.dispose()
+    }
+  }, [])
 
-  render() {
-    return (
-      <div className="x6-graph-wrap">
-        <div ref={this.refContainer} className="x6-graph" />
-      </div>
-    )
-  }
+  return (
+    <div className="x6-graph-wrap">
+      <div ref={containerRef} className="x6-graph" />
+    </div>
+  )
 }

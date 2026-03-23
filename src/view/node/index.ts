@@ -107,6 +107,11 @@ export class NodeView<
 
   confirmUpdate(flag: number, options: any = {}) {
     let ret = flag
+    const toolRelatedGeometryChanged = this.hasAction(flag, [
+      'resize',
+      'translate',
+      'rotate',
+    ])
     if (this.hasAction(ret, 'ports')) {
       this.removePorts()
       this.cleanPortsCache()
@@ -143,7 +148,12 @@ export class NodeView<
       ret = this.handleAction(ret, 'rotate', () => this.rotate())
       ret = this.handleAction(ret, 'ports', () => this.renderPorts())
       ret = this.handleAction(ret, 'tools', () => {
-        if (this.getFlag('tools') === flag) {
+        const hasModelTools = this.cell.getTools() != null
+        if (
+          !toolRelatedGeometryChanged ||
+          this.tools == null ||
+          !hasModelTools
+        ) {
           this.renderTools()
         } else {
           this.updateTools(options)
@@ -301,6 +311,32 @@ export class NodeView<
     })
 
     this.updatePorts()
+    this.cleanCache()
+    this.updateConnectedEdges()
+  }
+
+  protected updateConnectedEdges() {
+    const graph = this.graph
+    const node = this.cell
+    const edges = graph.model.getConnectedEdges(node)
+    for (let i = 0, n = edges.length; i < n; i += 1) {
+      const edge = edges[i]
+      const edgeView = edge.findView(graph) as EdgeView
+      if (!edgeView || !graph.renderer.isViewMounted(edgeView)) {
+        continue
+      }
+      const actions = ['update']
+      if (edge.getSourceCell() === node) {
+        actions.push('source')
+      }
+      if (edge.getTargetCell() === node) {
+        actions.push('target')
+      }
+      graph.renderer.requestViewUpdate(
+        edgeView,
+        edgeView.getFlag(actions as any),
+      )
+    }
   }
 
   protected appendPorts(ports: Port[], zIndex: number, refs: Element[]) {
